@@ -3342,6 +3342,9 @@
 - func: pixel_shuffle(Tensor self, int upscale_factor) -> Tensor
   use_c10_dispatcher: full
 
+- func: pixel_unshuffle(Tensor self, int downscale_factor) -> Tensor
+  use_c10_dispatcher: full
+
 - func: channel_shuffle(Tensor self, int groups) -> Tensor
   use_c10_dispatcher: full
   dispatch:
@@ -6934,14 +6937,12 @@
   use_c10_dispatcher: full
   variants: method
   dispatch:
-    CPU: _erfinv__cpu
-    CUDA: _erfinv__cuda
+    CPU, CUDA: erfinv_
 
 - func: erfinv.out(Tensor self, *, Tensor(a!) out) -> Tensor(a!)
   use_c10_dispatcher: hacky_wrapper_for_legacy_signatures
   dispatch:
-    CPU: _erfinv_out_cpu
-    CUDA: _erfinv_out_cuda
+    CPU, CUDA: erfinv_out
 
 - func: i0(Tensor self) -> Tensor
   use_c10_dispatcher: full
