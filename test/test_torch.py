@@ -6778,6 +6778,10 @@ _unsigned_types = [torch.uint8]
 # These Ops promote integer inputs to Float.
 binary_float_ops_inplace = ['atan2_', 'div_']
 
+# Operators which are implemented using
+# structured kernels and use `build_binary_float_op`
+structured_inplace_ops = ['atan2_']
+
 # Helper values and functions for producing tensors and scalars to use in tensor op tests.
 # Tensor dimension sizes (Small, Medium, Large, Giant)
 _S = 5
@@ -6916,6 +6920,15 @@ tensor_op_tests = [
     ('true_divide', 'tensor_with_inplace', _small_3d,
         lambda t, d: [_small_3d(t, d, has_zeros=False)], 1e-1,
         1e-1, 1e-5, torch.testing.get_all_fp_dtypes()),
+    ('pow', '', _small_3d, lambda t, d: [_number(3.14, 3, t)], 1e-1, 1e-1, 1e-5, torch.testing.get_all_fp_dtypes()),
+    ('pow', '1', _small_3d, lambda t, d: [_number(1., 1, t)], 1e-1, 1e-1, 1e-5, torch.testing.get_all_fp_dtypes()),
+    ('pow', '2', _small_3d, lambda t, d: [_number(2., 2, t)], 1e-1, 1e-1, 1e-5, torch.testing.get_all_fp_dtypes()),
+    ('pow', '3', _small_3d, lambda t, d: [_number(3., 3, t)], 1e-1, 1e-1, 1e-5, torch.testing.get_all_fp_dtypes()),
+    ('pow', '-1', _small_3d, lambda t, d: [_number(-1., -1, t)], 1e-1, 1e-1, 1e-5, torch.testing.get_all_fp_dtypes()),
+    ('pow', '-2', _small_3d, lambda t, d: [_number(-2., -2, t)],
+        1e-1, 1e-5, 1e-5, _float_types_no_half, _cpu_types, False),
+    ('pow', 'tensor', _small_3d, lambda t, d: [_small_3d(t, d).abs()],
+        1e-1, 1e-1, 1e-5, torch.testing.get_all_fp_dtypes()),
     ('addbmm', '', _small_2d, lambda t, d: [_small_3d(t, d), _small_3d(t, d)],
         1e-1, 1e-1, 1e-4, torch.testing.get_all_fp_dtypes(include_bfloat16=AMPERE_OR_ROCM) + _complex_types,
         _cpu_types, True, [tf32_on_and_off(0.01)]),
@@ -7237,7 +7250,7 @@ def generate_test_function(cls,
                 else:
                     raise
             else:
-                if self.device_type == 'meta':
+                if self.device_type == 'meta' and op_str not in structured_inplace_ops:
                     self.fail('expected test to fail on meta tensors, but it passed')
                 else:
                     pass
