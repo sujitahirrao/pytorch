@@ -5,7 +5,7 @@ import collections
 import numbers
 from typing import (Any, Dict, Iterator, List, Set, Sequence, Tuple,
                     TypeVar, Union, get_type_hints)
-from typing import _tp_cache, _type_check, _type_repr  # type: ignore
+from typing import _tp_cache, _type_check, _type_repr  # type: ignore[attr-defined]
 # TODO: Use TypeAlias when Python 3.6 is deprecated
 # Please check [Note: TypeMeta and TypeAlias]
 try:
@@ -14,9 +14,9 @@ except ImportError:  # Python > 3.6
     # In case of metaclass conflict due to ABCMeta or _ProtocolMeta
     # For Python 3.9, only Protocol in typing uses metaclass
     from abc import ABCMeta
-    from typing import _ProtocolMeta  # type: ignore
+    from typing import _ProtocolMeta  # type: ignore[attr-defined]
 
-    class GenericMeta(_ProtocolMeta, ABCMeta):  # type: ignore
+    class GenericMeta(_ProtocolMeta, ABCMeta):  # type: ignore[no-redef]
         pass
 
 
@@ -81,7 +81,7 @@ def issubtype(left, right, recursive=True):
 
 
 def _decompose_type(t, to_list=True):
-    if isinstance(t, TypeVar):  # type: ignore
+    if isinstance(t, TypeVar):
         if t.__bound__ is not None:
             ts = [t.__bound__]
         else:
@@ -129,7 +129,8 @@ def _issubtype_with_constraints(variant, constraints, recursive=True):
     # Variant is not TypeVar or Union
     if hasattr(variant, '__origin__') and variant.__origin__ is not None:
         v_origin = variant.__origin__
-        v_args = variant.__args__
+        # In Python-3.9 typing library untyped generics do not have args
+        v_args = getattr(variant, "__args__", None)
     else:
         v_origin = variant
         v_args = None
@@ -150,7 +151,8 @@ def _issubtype_with_constraints(variant, constraints, recursive=True):
                 if v_origin == c_origin:
                     if not recursive:
                         return True
-                    c_args = constraint.__args__
+                    # In Python-3.9 typing library untyped generics do not have args
+                    c_args = getattr(constraint, "__args__", None)
                     if c_args is None or len(c_args) == 0:
                         return True
                     if v_args is not None and len(v_args) == len(c_args) and \
@@ -168,21 +170,23 @@ def issubinstance(data, data_type):
     if not issubtype(type(data), data_type, recursive=False):
         return False
 
+    # In Python-3.9 typing library __args__ attribute is not defined for untyped generics
+    dt_args = getattr(data_type, "__args__", None)
     if isinstance(data, tuple):
-        if data_type.__args__ is None or len(data_type.__args__) == 0:
+        if dt_args is None or len(dt_args) == 0:
             return True
-        if len(data_type.__args__) != len(data):
+        if len(dt_args) != len(data):
             return False
-        return all(issubinstance(d, t) for d, t in zip(data, data_type.__args__))
+        return all(issubinstance(d, t) for d, t in zip(data, dt_args))
     elif isinstance(data, (list, set)):
-        if data_type.__args__ is None or len(data_type.__args__) == 0:
+        if dt_args is None or len(dt_args) == 0:
             return True
-        t = data_type.__args__[0]
+        t = dt_args[0]
         return all(issubinstance(d, t) for d in data)
     elif isinstance(data, dict):
-        if data_type.__args__ is None or len(data_type.__args__) == 0:
+        if dt_args is None or len(dt_args) == 0:
             return True
-        kt, vt = data_type.__args__
+        kt, vt = dt_args
         return all(issubinstance(k, kt) and issubinstance(v, vt) for k, v in data.items())
 
     return True
@@ -304,7 +308,7 @@ def _mro_subclass_init(obj):
             if b.__init_subclass__ == _dp_init_subclass:
                 return True
             if hasattr(b.__init_subclass__, '__func__') and \
-                    b.__init_subclass__.__func__ == _dp_init_subclass:  # type: ignore
+                    b.__init_subclass__.__func__ == _dp_init_subclass:  # type: ignore[attr-defined]
                 return True
     return False
 
