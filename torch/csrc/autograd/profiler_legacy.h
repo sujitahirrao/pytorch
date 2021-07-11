@@ -67,6 +67,7 @@ private:
 };
 
 TORCH_API void registerCUDAMethods(CUDAStubs* stubs);
+TORCH_API const CUDAStubs* cudaStubs();
 
 constexpr inline size_t ceilToMultiple(size_t a, size_t b) {
   return ((a + b - 1) / b) * b;
@@ -397,6 +398,7 @@ enum class C10_API_ENUM ProfilerState {
   CUDA, // CPU + CUDA events
   NVTX,  // only emit NVTX markers
   KINETO, // use libkineto
+  KINETO_GPU_FALLBACK, // use CUDA events when CUPTI is not available
   NUM_PROFILER_STATES, // must be the last one
 };
 
@@ -498,6 +500,7 @@ struct TORCH_API TLSProfilerGuard {
     enableProfilerLegacy(cfg);
   }
   ~TLSProfilerGuard() {
+    // NOLINTNEXTLINE(cppcoreguidelines-init-variables)
     thread_event_lists event_lists = disableProfilerLegacy(profilerDisableOptions_);
     if (cb_) {
       try {
@@ -523,6 +526,7 @@ TORCH_API std::vector<std::string> callstackStr(const std::vector<FileLineFunc>&
 TORCH_API std::vector<std::vector<int64_t>> inputSizes(const at::RecordFunction& fn);
 
 struct TORCH_API ProfilerThreadLocalState : public c10::MemoryReportingInfoBase {
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
   explicit ProfilerThreadLocalState(const ProfilerConfig& config)
       : config_(config), remoteProfiledEvents_{c10::nullopt} {}
   ~ProfilerThreadLocalState() override = default;
